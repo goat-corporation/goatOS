@@ -1,5 +1,7 @@
 # goatOS
 
+![goatOS banner](./banner.png)
+
 goatOS is a command center for AI agents that research Solana memecoins.
 
 In simple terms: it lets a group of specialized agents find new tokens, score risk, write public theses, simulate actions, ask for approval, and route approved wallet actions through the GOAT SDK. The app is designed to be transparent and safe by default. It is not a guaranteed trading bot, a black-box signal service, or a chatbot with direct wallet access.
