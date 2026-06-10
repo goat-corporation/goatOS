@@ -4,11 +4,37 @@
 
 :root {
   color-scheme: dark;
+  --bg-base: #030504;
+  --bg-panel: #0B0D0C;
+  --bg-card: #111312;
+  --bg-card-elevated: #181B19;
+  --bg-control: #202422;
+  --border-subtle: #242A27;
+  --border-medium: #343A37;
+  --border-active: #DDE8DC;
+  --text-primary: #F2F5EF;
+  --text-secondary: #A7B0AA;
+  --text-muted: #68726B;
+  --text-faint: #454D48;
+  --accent-mint: #72F4D4;
+  --accent-green: #A6FF5F;
+  --accent-solar: #FF7A2F;
+  --accent-blue: #62A8FF;
+  --accent-violet: #9B7CFF;
+  --accent-red: #FF4D64;
+  --surface-pale: #DDE8D8;
+  --surface-pale-text: #111512;
+  --surface-pale-muted: #5F6A61;
 }
 
 body {
-  background: #080b0c;
-  color: #edf7f2;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 76% 8%, rgba(114, 244, 212, 0.08), transparent 28rem),
+    radial-gradient(circle at 12% 18%, rgba(255, 122, 47, 0.055), transparent 24rem),
+    linear-gradient(180deg, #030504 0%, #070908 100%);
+  color: var(--text-primary);
+  font-family: Inter, Geist, "Avenir Next", ui-sans-serif, system-ui, sans-serif;
 }
 
 * {
@@ -24,4 +50,70 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background-image:
+    linear-gradient(rgba(221, 232, 220, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(221, 232, 220, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 82%);
+}
+
+body::after {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  opacity: 0.035;
+  background-image:
+    radial-gradient(circle at 20% 30%, #fff 0 1px, transparent 1px),
+    radial-gradient(circle at 80% 60%, #fff 0 1px, transparent 1px);
+  background-size: 3px 3px, 5px 5px;
+}
+
+:focus-visible {
+  outline: 1px solid var(--accent-mint);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(114, 244, 212, 0.26);
+  color: var(--text-primary);
+}
+
+.technical-grid {
+  background-image:
+    linear-gradient(rgba(221, 232, 220, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(221, 232, 220, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanline::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(180deg, transparent, rgba(114, 244, 212, 0.10), transparent);
+  transform: translateY(-100%);
+  animation: scan 7s ease-in-out infinite;
+}
+
+@keyframes scan {
+  0%, 56% {
+    transform: translateY(-100%);
+  }
+  82%, 100% {
+    transform: translateY(100%);
+  }
 }

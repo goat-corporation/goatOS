@@ -1,253 +1,207 @@
 # goatOS
 
-goatOS is a transparent AI-agent operating system for Solana memecoin markets. It acts as a public AI research treasury: agents discover tokens, score risk, create theses, simulate actions, request approval, route approved wallet actions through a GOAT SDK wrapper, publish logs, and write postmortems.
+goatOS is a command center for AI agents that research Solana memecoins.
 
-Default runtime is safe: mock mode enabled, dry-run enabled, autonomous mode disabled, human approval required, and emergency pause available.
+In simple terms: it lets a group of specialized agents find new tokens, score risk, write public theses, simulate actions, ask for approval, and route approved wallet actions through the GOAT SDK. The app is designed to be transparent and safe by default. It is not a guaranteed trading bot, a black-box signal service, or a chatbot with direct wallet access.
 
-## Core Loop
+## What It Does
 
-Scout Agent finds a token -> Risk Agent scores the token -> Trader Agent creates a BUY_PROPOSAL thesis -> Governor Agent checks policy -> action is simulated -> user approves or rejects -> approved action routes through GOAT execution wrapper -> action is logged publicly -> Historian Agent writes postmortem -> thesis outcome becomes visible.
+goatOS demonstrates a full agent operating loop:
 
-## Architecture
+1. Scout Agent finds a token.
+2. Risk Agent scores the token.
+3. Trader Agent creates a bounded buy or sell proposal.
+4. Governor Agent checks policy.
+5. The action is simulated.
+6. A human approves or rejects it.
+7. Approved actions go through the GOAT SDK wrapper.
+8. The action is logged publicly.
+9. Historian Agent writes the postmortem.
 
-```text
-┌──────────────────────────────────────────────┐
-│                  goatOS UI                    │
-│ Dashboard · Agents · Tokens · Theses · Bounty │
-└───────────────────────┬──────────────────────┘
-                        │
-                        ▼
-┌──────────────────────────────────────────────┐
-│                 API Layer                     │
-│ Next.js Route Handlers · Zod Validation       │
-└───────────────────────┬──────────────────────┘
-                        │
-                        ▼
-┌──────────────────────────────────────────────┐
-│              Agent Runtime                    │
-│ Scout · Risk · Trader · Patron · Historian    │
-└───────────────────────┬──────────────────────┘
-                        │
-                        ▼
-┌──────────────────────────────────────────────┐
-│              Governor / Policy Engine         │
-│ Mandates · Limits · Approval · Emergency Stop │
-└───────────────────────┬──────────────────────┘
-                        │
-                        ▼
-┌──────────────────────────────────────────────┐
-│              GOAT SDK Wrapper                 │
-│ Wallet Tools · Payments · Swaps · Simulation  │
-└───────────────────────┬──────────────────────┘
-                        │
-                        ▼
-┌──────────────────────────────────────────────┐
-│                  Solana                       │
-│ Wallets · Tokens · Transactions               │
-└──────────────────────────────────────────────┘
-```
+The default local app runs with mock data and mock adapters, so you can explore the full product without API keys or live wallet credentials.
 
-## Setup
+## Safety Defaults
+
+goatOS starts in safe mode:
+
+- Dry-run mode is enabled.
+- Autonomous mode is disabled.
+- Human approval is required.
+- Live trading is disabled by default.
+- Mock adapters are used when keys are missing.
+- Private keys are never exposed to the frontend or the LLM.
+- LLM output can only create typed proposals.
+- Every protected action must pass policy, simulation, approval, execution wrapper, and public logging.
+
+## Tech Stack
+
+- TypeScript
+- Next.js App Router
+- React
+- Tailwind CSS
+- Prisma
+- PostgreSQL
+- Solana web3.js
+- GOAT SDK
+- Zod
+- Vitest
+- Optional Redis/BullMQ-style queue abstraction
+
+## Getting Started
+
+From the repository root:
 
 ```bash
 cd goat-os
 npm install
 cp .env.example .env
-npm run db:generate
 npm run dev
 ```
 
-Open `http://localhost:3000/dashboard`.
-
-## Environment
-
-`.env.example` contains all required variables:
+Open:
 
 ```text
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/goatos"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-OPENAI_API_KEY=""
-OPENAI_MODEL="gpt-4.1-mini"
-SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
-SOLANA_CLUSTER="mainnet-beta"
-GOAT_SDK_API_KEY=""
-GOAT_WALLET_SECRET=""
-HELIUS_API_KEY=""
-BIRDEYE_API_KEY=""
-DEXSCREENER_API_KEY=""
-JUPITER_API_KEY=""
-REDIS_URL=""
+http://localhost:3000
+```
+
+If port 3000 is already in use:
+
+```bash
+npm run dev -- -p 3004
+```
+
+## Environment Variables
+
+Start with:
+
+```bash
+cp .env.example .env
+```
+
+Important defaults:
+
+```env
 MOCK_MODE="true"
 DRY_RUN_ONLY="true"
 AUTONOMOUS_MODE_ENABLED="false"
 ```
 
-Missing API keys do not crash the app. Token adapters, LLM output, GOAT wallets, simulations, and executions fall back to deterministic mock behavior.
+You can run the product locally without real API keys. Add keys only when you are ready to test live integrations.
 
-## Database
+## Database Setup
 
-PostgreSQL is the production datastore. The scaffold also runs from in-memory mock registries for local UI and tests.
+The UI and tests work with deterministic mock data. For Prisma/PostgreSQL:
 
 ```bash
+npm run db:generate
 npm run db:push
 npm run db:seed
 ```
 
-Prisma models cover users, agents, wallets, policies, token profiles, theses, bounties, submissions, logs, approvals, mandates, memory, simulations, and executed transactions.
+The default database URL in `.env.example` is:
 
-## GOAT SDK Integration
-
-GOAT SDK is wrapped in `src/lib/goat/*`.
-
-The required wallet action path is:
-
-```text
-LLM proposal -> policy validation -> simulation -> approval/autonomous gate -> GOAT SDK execution wrapper -> transaction persistence -> public action log
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/goatos"
 ```
 
-The frontend never receives private keys. Agents never receive private keys. LLM output can only create structured proposals.
+## Common Commands
 
-## Safety Model
+```bash
+npm run dev
+npm run build
+npm test
+npm run typecheck
+npm run db:generate
+npm run db:push
+npm run db:seed
+```
 
-Financial actions are constrained by max trade size, daily spend limit, approval thresholds, dry-run mode, autonomous mode, risk bounds, token/wallet blocklists, cooldowns, open-position limits, and emergency pause.
+## Project Structure
 
-Every operational failure returns a typed error and relevant policy/action failures are logged.
+```text
+src/app            Next.js pages and API routes
+src/components     Reusable UI modules
+src/lib/agents     Agent prompts, schemas, and runtime
+src/lib/goat       GOAT SDK wrapper and mock execution layer
+src/lib/policy     Policy engine and governance mandates
+src/lib/tokens     Token adapters, profiles, and risk scoring
+src/lib/theses     Thesis registry helpers
+src/lib/bounties   Bounty creation and payout flow
+src/lib/approvals  Approval request lifecycle
+src/lib/logs       Public action log
+tests              Critical unit tests
+prisma             Database schema and seed data
+```
 
 ## Agents
 
-- `scout-01`: discovers new launches and creates WATCHLIST theses.
-- `risk-01`: scores risk and creates WATCHLIST or REJECT theses.
-- `trader-01`: creates BUY/SELL proposals and routes through policy/simulation/approval.
-- `patron-01`: creates bounties and proposes payout actions.
-- `historian-01`: writes public explanations and postmortems.
-- `governor-01`: enforces mandates, approvals, limits, and emergency pause.
+- Scout Agent: discovers new Solana memecoins and creates watchlist theses.
+- Risk Agent: scores concentration, liquidity, dev wallet, bundle, and social risks.
+- Trader Agent: creates bounded trade proposals and routes them through policy.
+- Patron Agent: creates bounties and proposes payouts.
+- Historian Agent: writes explanations and postmortems.
+- Governor Agent: enforces mandates, limits, approval rules, and emergency pause.
 
-## API Routes
+## GOAT SDK Integration
 
-- `GET /api/agents`
-- `GET /api/agents/[id]`
-- `POST /api/agents/[id]/run`
-- `GET /api/tokens`
-- `GET /api/tokens/[mint]`
-- `POST /api/tokens/[mint]/risk-review`
-- `GET /api/theses`
-- `POST /api/theses`
-- `GET /api/theses/[id]`
-- `POST /api/theses/[id]/resolve`
-- `GET /api/bounties`
-- `POST /api/bounties`
-- `GET /api/bounties/[id]`
-- `POST /api/bounties/[id]/submit`
-- `POST /api/bounties/[id]/payout`
-- `GET /api/logs`
-- `POST /api/actions/simulate`
-- `POST /api/actions/approve`
-- `POST /api/actions/reject`
-- `POST /api/actions/execute`
-- `POST /api/emergency-pause`
-
-## Sequence Diagrams
-
-### Trade Proposal Flow
+GOAT SDK is the canonical onchain action layer. goatOS wraps it behind a safer application flow:
 
 ```text
-User
- │
- │ clicks "Run Trader"
- ▼
-API Route
- │
- ▼
-Trader Agent
- │ creates BUY_PROPOSAL
- ▼
-Thesis Registry
- │
- ▼
-Governor Agent
- │ checks policy
- ▼
-Policy Engine
- │
- ├── rejected -> Action Log
- │
- └── allowed
-       │
-       ▼
-   GOAT Simulation
-       │
-       ▼
-   Approval Request
-       │
-       ▼
-   User Approval
-       │
-       ▼
-   GOAT Execution Wrapper
-       │
-       ▼
-   Transaction Log
-       │
-       ▼
-   Historian Postmortem
+proposal -> policy -> simulation -> approval -> GOAT wrapper -> transaction log
 ```
 
-### Bounty Payout Flow
+When GOAT credentials are missing, the wrapper uses deterministic mock wallets, mock simulations, and fake transaction hashes so the full product loop still works locally.
 
-```text
-Patron Agent
- │
- │ creates bounty
- ▼
-Bounty Registry
- │
- ▼
-User Submission
- │
- ▼
-Award Decision
- │
- ▼
-Payout Proposal
- │
- ▼
-Policy Engine
- │
- ▼
-GOAT Simulation
- │
- ▼
-Approval Gate
- │
- ▼
-GOAT Payment Execution
- │
- ▼
-Action Log
-```
+## Contributing
 
-## Tests
+Before opening a pull request:
 
 ```bash
-npm test
 npm run typecheck
+npm test
+npm run build
 ```
 
-Coverage targets the policy engine, risk scoring, thesis registry, GOAT mock actions, and agent runtime.
+Contribution guidelines:
+
+- Keep wallet actions behind the GOAT wrapper.
+- Do not expose secrets to the frontend.
+- Validate API payloads with Zod.
+- Add tests for policy, risk, approval, or execution changes.
+- Preserve mock fallback behavior for local development.
+- Keep UI changes consistent with the dark telemetry command-interface design.
+- Avoid hype language, profit claims, or unsafe autonomous trading defaults.
+
+## Adding a New Agent
+
+1. Add the agent profile and policy seed data.
+2. Add or update the system prompt in `src/lib/agents/prompts.ts`.
+3. Add a typed runtime function in `src/lib/agents/runtime.ts`.
+4. Validate structured output with Zod.
+5. Log meaningful actions.
+6. Add tests for the new runtime path.
+
+## Adding a New External Adapter
+
+1. Create the adapter in `src/lib/tokens/adapters`.
+2. Return mock data when keys are missing.
+3. Never crash the dashboard if the live API fails.
+4. Expose a health check for the settings page.
+5. Add risk-score or runtime tests if behavior changes.
 
 ## Deployment Notes
 
-Use managed Postgres, server-only secrets for GOAT wallet configuration, a Solana RPC provider, and optional Redis for queues. Keep `DRY_RUN_ONLY=true` until governance explicitly approves live execution. The direct execution API requires an approval ID and should remain protected behind authentication in production.
+For production, configure:
+
+- PostgreSQL
+- Server-only GOAT wallet credentials
+- Solana RPC provider
+- OpenAI-compatible LLM provider
+- Optional Redis queue backend
+- Authentication and authorization around protected API routes
+
+Keep `DRY_RUN_ONLY=true` until governance explicitly approves live execution.
 
 ## Limitations
 
-The scaffold uses deterministic mock adapters by default. Live GOAT SDK execution, live Dexscreener/Birdeye/Helius/Jupiter integrations, auth, durable in-process state replacement, and production queue workers are integration milestones, not blockers for local operation.
-
-## Implementation Milestones
-
-1. Project foundation: Next.js, Tailwind, Prisma, env validation, layout, seed data, mock mode.
-2. Domain models: agents, policies, tokens, theses, bounties, logs, approvals.
-3. Policy + GOAT wrapper: simulation, mock execution, mandates, rejection logs.
-4. Agent runtime: Scout, Risk, Trader, Patron, Historian, Governor.
-5. UI completion: dashboard, agents, tokens, theses, bounties, governance, settings.
-6. Tests + hardening: unit tests, API validation, action logging, README.
+This repository is a production-quality scaffold, not a finished trading operation. Live exchange routing, durable user auth, production queue workers, expanded analytics, and real token data providers should be completed and reviewed before any live financial use.
