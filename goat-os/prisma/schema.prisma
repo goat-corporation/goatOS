@@ -1,0 +1,253 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AgentStatus {
+  IDLE
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum ThesisStatus {
+  OPEN
+  APPROVED
+  REJECTED
+  EXECUTED
+  RESOLVED
+  EXPIRED
+}
+
+enum ThesisOutcome {
+  WIN
+  LOSS
+  NEUTRAL
+  AVOIDED_RUG
+  MISSED_OPPORTUNITY
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum BountyStatus {
+  OPEN
+  SUBMITTED
+  REVIEWING
+  AWARDED
+  PAID
+  CANCELLED
+}
+
+enum GovernanceMandateType {
+  GRAZE
+  NIBBLE
+  STAMPEDE
+  PATRON
+  PURGE
+  ARCHIVE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model Agent {
+  id             String        @id
+  name           String
+  role           String
+  status         AgentStatus   @default(IDLE)
+  currentMandate String
+  promptSummary  String
+  riskPermissions Json
+  lastRunAt      DateTime?
+  createdAt      DateTime      @default(now())
+  wallet         AgentWallet?
+  policies       AgentPolicy[]
+  theses         Thesis[]
+  logs           ActionLog[]
+  memories       AgentMemory[]
+}
+
+model AgentWallet {
+  id        String   @id @default(cuid())
+  agentId   String   @unique
+  address   String   @unique
+  mock      Boolean  @default(true)
+  createdAt DateTime @default(now())
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+model AgentPolicy {
+  id                           String   @id @default(cuid())
+  agentId                      String
+  maxTradeSizeSol              Float
+  maxDailySpendSol             Float
+  maxOpenPositions             Int
+  allowedActions               String[]
+  requireHumanApprovalAboveSol Float
+  autonomousModeEnabled        Boolean  @default(false)
+  dryRunOnly                   Boolean  @default(true)
+  allowedTokenMints            String[]
+  blockedTokenMints            String[]
+  blockedWallets               String[]
+  minRiskScore                 Int      @default(0)
+  maxRiskScore                 Int      @default(60)
+  cooldownMinutes              Int      @default(30)
+  emergencyPaused              Boolean  @default(false)
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+  agent                        Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+model TokenProfile {
+  mint                String   @id
+  symbol              String
+  name                String
+  priceUsd            Float
+  marketCapUsd        Float
+  liquidityUsd        Float
+  volume1hUsd         Float
+  volume24hUsd        Float
+  holders             Int
+  top10HolderPercent  Float
+  devWalletStatus     String
+  lpStatus            String
+  migrationStatus     String
+  bundleRisk          Int
+  socialVelocity      Int
+  createdAt           DateTime
+  links               Json
+  theses              Thesis[]
+  logs                ActionLog[]
+}
+
+model Thesis {
+  id                 String         @id
+  agentId            String
+  tokenMint          String?
+  actionType         String
+  confidence         Float
+  riskScore          Int?
+  positionSizeSol    Float?
+  maxLossSol         Float?
+  timeHorizonMinutes Int?
+  reasons            String[]
+  invalidations      String[]
+  sourceLinks        String[]
+  status             ThesisStatus   @default(OPEN)
+  outcome            ThesisOutcome?
+  postmortem         String?
+  createdAt          DateTime       @default(now())
+  resolvedAt         DateTime?
+  agent              Agent          @relation(fields: [agentId], references: [id])
+  token              TokenProfile?  @relation(fields: [tokenMint], references: [mint])
+  approvals          ApprovalRequest[]
+  logs               ActionLog[]
+}
+
+model Bounty {
+  id          String       @id
+  type        String
+  title       String
+  description String
+  rewardSol   Float
+  creatorId   String
+  status      BountyStatus @default(OPEN)
+  winnerId    String?
+  payoutTx    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  submissions BountySubmission[]
+  logs        ActionLog[]
+}
+
+model BountySubmission {
+  id          String   @id @default(cuid())
+  bountyId    String
+  submitter   String
+  content     String
+  links       String[]
+  createdAt   DateTime @default(now())
+  bounty      Bounty   @relation(fields: [bountyId], references: [id], onDelete: Cascade)
+}
+
+model ActionLog {
+  id        String   @id
+  type      String
+  agentId   String?
+  tokenMint String?
+  thesisId  String?
+  bountyId  String?
+  txHash    String?
+  payload   Json
+  createdAt DateTime @default(now())
+  agent     Agent?   @relation(fields: [agentId], references: [id])
+  token     TokenProfile? @relation(fields: [tokenMint], references: [mint])
+  thesis    Thesis?  @relation(fields: [thesisId], references: [id])
+  bounty    Bounty?  @relation(fields: [bountyId], references: [id])
+}
+
+model ApprovalRequest {
+  id               String         @id
+  actionId         String
+  agentId          String
+  thesisId         String?
+  status           ApprovalStatus @default(PENDING)
+  policyDecision   Json
+  simulationResult Json?
+  action           Json
+  createdAt        DateTime       @default(now())
+  resolvedAt       DateTime?
+  thesis           Thesis?        @relation(fields: [thesisId], references: [id])
+}
+
+model GovernanceMandate {
+  id        String                @id @default(cuid())
+  type      GovernanceMandateType
+  active    Boolean               @default(false)
+  settings  Json
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+}
+
+model AgentMemory {
+  id        String   @id @default(cuid())
+  agentId   String
+  key       String
+  value     Json
+  createdAt DateTime @default(now())
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+model TradeSimulation {
+  id                  String   @id @default(cuid())
+  actionId            String
+  success             Boolean
+  estimatedFeeSol     Float
+  expectedOutput      String?
+  warnings            String[]
+  raw                 Json?
+  createdAt           DateTime @default(now())
+}
+
+model ExecutedTransaction {
+  id        String   @id @default(cuid())
+  actionId  String
+  txHash    String?
+  success   Boolean
+  error     String?
+  raw       Json?
+  createdAt DateTime @default(now())
+}
